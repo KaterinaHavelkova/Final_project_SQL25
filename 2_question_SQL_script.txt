@@ -1,0 +1,52 @@
+--Kolik je možné si koupit litrů mléka a kilogramů chleba za první a poslední srovnatelné období v dostupných datech cen a mezd?
+--Cilem je zjistit kolik si clovek muze koupit na prumernou mzdu v roce 2006 a roce 2018
+--Postup řešení:
+--1. Výběr správných kategorii potravin:  Mléko polotučné pasterované, Chléb konzumní kmínový
+	SELECT DISTINCT food_category
+	FROM t_katerina_havelkova_project_sql_primary_final;
+--2. Výpočet průměrné mzdy v letech 2006 a 2018 napříč všemi odvětvími.
+--3. Výpočet průměrné ceny daných potravin v daných letech.
+--4. Spojení hodnot a výpočet, kolik si člověk mohl dovolit kg chleba nebo litrů mléka.
+
+--Závěr:
+--V roce 2006 jsme si mohli koupit 1287 Kg chleba a 1437 l mléka. 
+--V roce 2018 jsme si mohli koupit 1342 Kg chleba a 1642 l mléka. 
+--Za průměrnou mzdu si člověk mohl v roce 2018 koupit více chleba i mléka než v roce 2006. 
+--To naznačuje, že růst mezd v tomto období převýšil růst cen těchto potravin, a tedy došlo ke zlepšení dostupnosti základních životních potřeb.
+
+--Dotaz:
+WITH 
+--Průměrná mzda v daném roce 2006, 2018
+wages AS (
+	SELECT 
+		payroll_year AS "year", 
+		ROUND(AVG(average_wages),2) AS total_avg_wage
+	FROM t_katerina_havelkova_project_sql_primary_final 
+	WHERE payroll_year IN (2006,2018)
+	GROUP BY payroll_year
+	), 
+--Průměrná cena
+prices AS (
+	SELECT 
+		price_year_of_entry AS "year", 
+		food_category,
+		ROUND(AVG(price::numeric),2) AS total_avg_price, 
+		MIN (unit_of_measure) AS unit
+	FROM t_katerina_havelkova_project_sql_primary_final 
+	WHERE price_year_of_entry IN (2006,2018) AND 
+			food_category IN (
+          'Mléko polotučné pasterované',
+          'Chléb konzumní kmínový'
+      )
+     GROUP BY  price_year_of_entry, food_category
+     )
+ --Finální výpočet: kolik jednotek potraviny lze koupit za průměrnou mzdu
+ SELECT 
+ 	p."year", 
+ 	p.food_category, 
+ 	ROUND(w.total_avg_wage/p.total_avg_price,0) AS affordable_purchase,
+ 	p.unit
+ FROM prices AS p
+ 	JOIN wages AS w
+ 	ON p."year" = w."year"
+ ORDER BY p.food_category, p."year";
